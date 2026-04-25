@@ -56,8 +56,18 @@ def get_destination_path(file: Path, category: str) -> Path:
 
 def sort_files():
     """
-    ШАГ 1: Сканируем папку и запускаем процесс перемещения.
+    ШАГ 1: Проверяем наличие папки, сканируем и запускаем перемещение.
     """
+    # ПРОВЕРКА КОРНЕВОЙ ПАПКИ:
+    # Если D:/_ЗАГРУЗКИ нет, создаем её перед сканированием
+    if not SOURCE_DIR.exists():
+        try:
+            SOURCE_DIR.mkdir(parents=True, exist_ok=True)
+            print(f"[INFO] Создана отсутствующая папка: {SOURCE_DIR}")
+        except Exception as e:
+            print(f"[ERROR] Не удалось создать базу: {e}")
+            return # Выходим, так как сканировать нечего
+
     moved_count = 0
     total_size = 0
     stats = {}
