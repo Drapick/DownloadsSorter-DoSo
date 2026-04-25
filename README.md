@@ -1,3 +1,7 @@
+<img width="251" height="251" alt="logo" src="https://github.com/user-attachments/assets/14978d67-18a4-47d4-b076-44fe32992160" />
+
+------------------------------------------
+
 ENG:
 DoSo is an AI-powered file sorter with the spirit of a "Bogatyr" (a legendary Slavic hero). It automates your digital cleanup, handling messy folders with heroic efficiency.
 Key Features:
