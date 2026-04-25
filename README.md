@@ -10,6 +10,8 @@ Important Note:
 
 ⚠️ Required Setup: For the bot to function correctly, you must change your browser's default download location to D:_ЗАГРУЗКИ.
 
+------------------------------------------
+
 РУС:
 DoSo — это интеллектуальный сортировщик файлов с характером русского Богатыря. Бот берет на себя рутину по наведению порядка в ваших документах, работая быстро и незаметно.
 Как это работает:
