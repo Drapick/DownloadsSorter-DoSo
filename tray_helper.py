@@ -6,9 +6,12 @@ import sys
 import shared_data
 from plyer import notification
 import time
+from win10toast import ToastNotifier
 
 auto_resume_timer = None
+_icon_instance = None
 
+toaster = ToastNotifier()
 
 def resource_path(relative_path):
     """ Получает путь к файлу, который 'зашит' внутри EXE """
@@ -23,6 +26,12 @@ def resource_path(relative_path):
 
 
 def start_tray(icon_name="logo.png", sort_funk=None):
+    global _icon_instance
+    if _icon_instance is not None:
+        print("гыгыгы проверка")
+        return  # Если иконка уже есть, ничего не делаем
+
+
     def on_quit(icon, item):
         icon.stop()
         # Жесткое завершение всех процессов скрипта
@@ -38,12 +47,12 @@ def start_tray(icon_name="logo.png", sort_funk=None):
     def wake_up(icon):
         shared_data.is_paused = False
         icon.update_menu()
-        notification.notify(
+        toaster.show_toast(
             title="DoSo Active",
-            app_icon=resource_path("logo.ico"),
-            message="Я проснулся спустя 30 минут и снова за работой!",
-            app_name='DoSo Sorter',
-            timeout=5
+            msg="Я проснулся спустя 30 минут и снова за работой!",
+            icon_path=resource_path("logo.ico"),
+            duration=5,
+            threaded=True  # Чтобы поток не завис и иконки не плодились
         )
 
     def on_paused(icon, item):
@@ -89,8 +98,10 @@ def start_tray(icon_name="logo.png", sort_funk=None):
                 pystray.MenuItem("Выход", on_quit)
             )
         )
-
+        # Записываем в пустую переменную, что-то, чтобы не плодился поток
+        _icon_instance = icon
         # Запускаем в отдельном потоке (daemon=True, чтобы не вис при закрытии)
+        print("запуск потока")
         threading.Thread(target=icon.run, daemon=True).start()
 
     except Exception as e:

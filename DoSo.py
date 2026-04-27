@@ -4,6 +4,10 @@ import random
 from pathlib import Path
 from plyer import notification
 
+from win10toast import ToastNotifier
+import multiprocessing
+
+
 from tray_helper import resource_path
 from phrases import ОТЧЕТЫ
 from tray_helper import start_tray
@@ -13,6 +17,8 @@ import shared_data
 # Папка, которую бот мониторит и куда переносит файлы
 SOURCE_DIR = Path("D:/_ЗАГРУЗКИ")
 DEST_BASE_DIR = Path("D:/_ЗАГРУЗКИ")
+
+toaster = ToastNotifier()
 
 # Словарь-определитель. Ключ — имя папки, значение — список расширений.
 FILE_CATEGORIES = {
@@ -123,17 +129,18 @@ def send_report(stats, count, size_bytes):
     # Выбираем рандомную фразу из твоего словаря
     title, message = random.choice(ОТЧЕТЫ.get(top_category, ОТЧЕТЫ["Остальное"]))
 
-    notification.notify(
-        title=title,
-        app_icon=resource_path("logo.ico"),
-        message=f"{message}\nПеренесено: {count} файлов ({size_mb} MB)",
-        app_name='DoSo Sorter',
-        timeout=10
+    toaster.show_toast(
+        title,
+        f"{message}\nПеренесено: {count} файлов ({size_mb} MB)",
+        icon_path=resource_path("logo.ico"),
+        duration=5,
+        threaded=True  # Чтобы уведомление не вешало программу
     )
 
 def manual_sort(icon, item):
     print("Принудительная сортировка запущена...")
     sort_files()
+
 
 
 def main():
@@ -142,16 +149,29 @@ def main():
     """
 
     # Приветственное уведомление
-    notification.notify(
+
+    # СТАРОЕ УВЕДОМЛЕНИЕ НА КРАЙНЯК
+
+    # notification.notify(
+    #     title="DoSo Active",
+    #     app_icon=resource_path("logo.ico"),
+    #     message=f"Старожу {DEST_BASE_DIR}, дай бог комп не сгорит!",
+    #     app_name='DoSo Sorter',
+    #     timeout=5 #
+    # )
+
+    toaster.show_toast(
         title="DoSo Active",
-        app_icon=resource_path("logo.ico"),
-        message=f"Старожу {DEST_BASE_DIR}, дай бог комп не сгорит!",
-        app_name='DoSo Sorter',
-        timeout=5
+        msg=f"Старожу {DEST_BASE_DIR}, дай бог комп не сгорит!",
+        icon_path=resource_path("logo.ico"),
+        duration=3,
+        threaded=True
     )
+
 
     # Запуск иконки в трее (чтобы можно было выключить бота)
     start_tray("logo.png", manual_sort)
+
 
     # Бесконечный цикл с паузой в 5 минут
     while True:
@@ -166,6 +186,7 @@ def main():
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     main()
 
 # команда для создания приложения
