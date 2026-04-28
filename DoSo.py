@@ -129,6 +129,8 @@ def send_report(stats, count, size_bytes):
     # Выбираем рандомную фразу из твоего словаря
     title, message = random.choice(ОТЧЕТЫ.get(top_category, ОТЧЕТЫ["Остальное"]))
 
+    print("ща будет картинка")
+
     toaster.show_toast(
         title,
         f"{message}\nПеренесено: {count} файлов ({size_mb} MB)",
@@ -182,7 +184,7 @@ def main():
                 # Если что-то упало (например, диск D отключился), пишем в консоль
                 print(f"Critical error: {e}")
 
-        time.sleep(300)  # Спим 300 секунд
+        time.sleep(2)  # Спим 300 секунд
 
 
 if __name__ == "__main__":

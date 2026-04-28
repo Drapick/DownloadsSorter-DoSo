@@ -4,9 +4,12 @@ import threading
 import os
 import sys
 import shared_data
+from win10toast import ToastNotifier
+import ctypes
+
 from plyer import notification
 import time
-from win10toast import ToastNotifier
+
 
 auto_resume_timer = None
 _icon_instance = None
