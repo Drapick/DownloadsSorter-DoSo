@@ -15,7 +15,10 @@ if (!initializer.EnsureDirectoryExists(watchDirectory))
 
 // 2. Инициализируем маршрутизатор и слушатель событий
 var routingService = new FileRoutingService();
-using var watcherService = new FileWatcherService(watchDirectory, routingService);
+var dateRoutingService = new DateFolderRoutingService();
+var moverService = new FileMoverService(dateRoutingService);
+
+using var watcherService = new FileWatcherService(watchDirectory, routingService, moverService);
 
 // 3. Запускаем слежение
 watcherService.Start();

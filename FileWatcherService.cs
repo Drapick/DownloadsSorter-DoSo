@@ -6,74 +6,77 @@ public class FileWatcherService : IDisposable
 {
     private readonly string _watchDirectory;
     private readonly FileRoutingService _routingService;
+    private readonly FileMoverService _moverService;
     private FileSystemWatcher? _watcher;
 
-    public FileWatcherService(string watchDirectory, FileRoutingService routingService)
+    private readonly HashSet<string> _temporaryExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".tmp",
+        ".temp",
+        ".crdownload",
+        ".part",
+        ".download",
+        ".opdownload"
+    };
+
+    public FileWatcherService(
+        string watchDirectory, 
+        FileRoutingService routingService, 
+        FileMoverService moverService)
     {
         _watchDirectory = watchDirectory;
         _routingService = routingService;
+        _moverService = moverService;
     }
 
     public void Start()
     {
         _watcher = new FileSystemWatcher(_watchDirectory)
         {
-            NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime,
-            IncludeSubdirectories = false, // Слушаем только корень загрузок, не трогаем подпапки
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime | NotifyFilters.LastWrite,
+            IncludeSubdirectories = false,
             EnableRaisingEvents = true
         };
-
-        // Подписываемся на событие создания нового файла
+        
         _watcher.Created += OnFileCreated;
+        _watcher.Renamed += OnFileRenamed;
 
         AppLogger.LogWatcher($"Мониторинг запущен для директории: {_watchDirectory}");
     }
 
-    private void OnFileCreated(object sender, FileSystemEventArgs e)
+    private void OnFileCreated(object sender, FileSystemEventArgs e) => ProcessFile(e.FullPath, e.Name);
+
+    private void OnFileRenamed(object sender, RenamedEventArgs e)
     {
-        // Игнорируем папки, обрабатываем только файлы
-        if (Directory.Exists(e.FullPath))
+        AppLogger.LogWatcher($"Файл завершил скачивание / переименован: {e.OldName} -> {e.Name}");
+        ProcessFile(e.FullPath, e.Name);
+    }
+
+    private void ProcessFile(string fullPath, string? fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName) || Directory.Exists(fullPath))
         {
             return;
         }
 
-        var fileName = e.Name;
-        if (string.IsNullOrEmpty(fileName))
+        var extension = Path.GetExtension(fileName);
+
+        // Игнорируем временные файлы браузеров
+        if (_temporaryExtensions.Contains(extension) ||
+            fileName.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase) ||
+            fileName.EndsWith(".crdownload", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
 
-        AppLogger.LogWatcher($"Обнаружен новый файл: {fileName}");
+        AppLogger.LogWatcher($"Обработка входящего файла: {fileName}");
 
-        try
-        {
-            var extension = Path.GetExtension(fileName);
-            var category = _routingService.GetDestinationFolder(extension);
+        // 1. Получаем категорию
+        var category = _routingService.GetDestinationFolder(extension);
+        var targetDirectory = Path.Combine(_watchDirectory, category);
 
-            // Формируем путь к целевой категории
-            var targetDirectory = Path.Combine(_watchDirectory, category);
-
-            // ДИНАМИЧЕСКАЯ ПРОВЕРКА: создаем папку только при реальной необходимости
-            if (!Directory.Exists(targetDirectory))
-            {
-                AppLogger.LogSystem($"Категория отсутствует. Создаем: {category}");
-                Directory.CreateDirectory(targetDirectory);
-            }
-
-            var targetFilePath = Path.Combine(targetDirectory, fileName);
-
-            // Пока делаем базовое перемещение для проверки логики
-            File.Move(e.FullPath, targetFilePath);
-            AppLogger.LogSuccess($"Файл [{fileName}] успешно перемещен в -> [{category}]");
-        }
-        catch (IOException ex)
-        {
-            AppLogger.LogWarning($"Файл [{fileName}] пока занят другим процессом: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            AppLogger.LogError($"Не удалось переместить файл [{fileName}]", ex);
-        }
+        // 2. Делегируем безопасное перемещение сервису Mover
+        _moverService.MoveFileSafely(fullPath, _watchDirectory, category);
     }
 
     public void Stop()
@@ -82,6 +85,7 @@ public class FileWatcherService : IDisposable
         {
             _watcher.EnableRaisingEvents = false;
             _watcher.Created -= OnFileCreated;
+            _watcher.Renamed -= OnFileRenamed;
             _watcher.Dispose();
             _watcher = null;
         }
