@@ -1,19 +1,26 @@
 ﻿using DownloadsSorter_DoSo;
 using DownloadsSorter_DoSo.Utils;
 
-Console.WriteLine("=== Запуск DownloadsSorter-DoSo ===");
+AppLogger.LogSystem("=== Инициализация DownloadsSorter-DoSo ===");
 
-const string targetDirectory = @"D:\_DOWNLOADS";
+const string watchDirectory = @"D:\_DOWNLOADS";
 
-var directoryInitializer = new DirectoryInitializationService();
-
-// Проверяем готовность папки перед запуском основного цикла
-if (!directoryInitializer.EnsureDirectoryExists(targetDirectory))
+// 1. Проверяем и создаем рабочую папку, если ее нет
+var initializer = new DirectoryInitializationService();
+if (!initializer.EnsureDirectoryExists(watchDirectory))
 {
-    AppLogger.LogError("Не удалось инициализировать рабочую папку. Завершение работы.");
+    AppLogger.LogError("Критическая ошибка запуска. Завершение работы.");
     return;
 }
 
-AppLogger.LogSuccess("Система готова к отслеживанию файлов.");
+// 2. Инициализируем маршрутизатор и слушатель событий
+var routingService = new FileRoutingService();
+using var watcherService = new FileWatcherService(watchDirectory, routingService);
 
-// Сюда дальше подключим FileSystemWatcher...
+// 3. Запускаем слежение
+watcherService.Start();
+
+AppLogger.LogSuccess("Программа готова к работе. Нажмите [Enter] для завершения...");
+Console.ReadLine();
+
+watcherService.Stop();
