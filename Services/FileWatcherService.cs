@@ -42,7 +42,7 @@ public class FileWatcherService : IDisposable
         _phraseService = phraseService;
         _notifyAction = notifyAction;
         
-        _debounceTimer = new Timer(300)
+        _debounceTimer = new Timer(1500)
         {
             AutoReset = false
         };
