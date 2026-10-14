@@ -1,0 +1,14 @@
+﻿## Build and output folders
+bin/
+obj/
+*.user
+*.suo
+
+## Rider & Visual Studio
+.idea/
+.vs/
+*.sln.docstates
+
+## OS generated files
+Thumbs.db
+Desktop.ini
