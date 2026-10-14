@@ -1,15 +1,19 @@
 ﻿using DownloadsSorter_DoSo;
+using DownloadsSorter_DoSo.Utils;
 
-Console.WriteLine("=== Проверка FileRoutingService ===");
+Console.WriteLine("=== Запуск DownloadsSorter-DoSo ===");
 
-var router = new FileRoutingService();
+const string targetDirectory = @"D:\_DOWNLOADS";
 
-string[] testFiles = ["report.pdf", "photo.PNG", "archive.zip", "setup.exe", "unknown.xyz", "no_ext"];
+var directoryInitializer = new DirectoryInitializationService();
 
-foreach (var fileName in testFiles)
+// Проверяем готовность папки перед запуском основного цикла
+if (!directoryInitializer.EnsureDirectoryExists(targetDirectory))
 {
-    var extension = Path.GetExtension(fileName);
-    var targetFolder = router.GetDestinationFolder(extension);
-    
-    Console.WriteLine($"Файл: {fileName,-15} -> Папка: {targetFolder}");
+    AppLogger.LogError("Не удалось инициализировать рабочую папку. Завершение работы.");
+    return;
 }
+
+AppLogger.LogSuccess("Система готова к отслеживанию файлов.");
+
+// Сюда дальше подключим FileSystemWatcher...
