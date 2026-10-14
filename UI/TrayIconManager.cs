@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 using DownloadsSorter_DoSo.Utils;
+using System.Drawing.Drawing2D;
 
 namespace DownloadsSorter_DoSo;
 
@@ -15,10 +16,17 @@ public class TrayIconManager : IDisposable
 
     public event Action? OnExitRequested;
 
-    public TrayIconManager(string rootDirectory, string iconPath)
+    public TrayIconManager(string rootDirectory)
     {
         _rootDirectory = rootDirectory;
-
+        
+        var resourcesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources");
+        var pngPath = Path.Combine(resourcesDir, "logo.png");
+        var icoPath = Path.Combine(resourcesDir, "logo.ico");
+        var actualIconPath = File.Exists(pngPath) ? pngPath : icoPath;
+        
+        
+        // Основа трея
         _contextMenu = new ContextMenuStrip();
 
         var rootFolderItem = new ToolStripMenuItem("Корневая папка", null, (_, _) => OpenFolder(_rootDirectory))
@@ -35,22 +43,52 @@ public class TrayIconManager : IDisposable
         _contextMenu.Items.Add(separator);
         _contextMenu.Items.Add(exitItem);
 
+        
         _notifyIcon = new NotifyIcon
         {
             Text = "DownloadsSorter DoSo",
             ContextMenuStrip = _contextMenu,
             Visible = true
         };
-
-        if (File.Exists(iconPath))
+        
+        
+        if (File.Exists(actualIconPath)) // Создание Иконки
         {
-            _notifyIcon.Icon = new Icon(iconPath);
+            try
+            {
+                using var originalBitmap = new Bitmap(actualIconPath);
+        
+                // Получаем точный размер иконки трея текущей Windows (обычно 16x16 при 100% масштабе)
+                var targetSize = SystemInformation.SmallIconSize;
+        
+                // Создаем чистый 32-битный холст нужного размера
+                using var highResBitmap = new Bitmap(targetSize.Width, targetSize.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                using (var g = Graphics.FromImage(highResBitmap))
+                {
+                    // Включаем алгоритмы максимальной резкости без размытия
+                    g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                    g.SmoothingMode = SmoothingMode.HighQuality;
+                    g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                    g.DrawImage(originalBitmap, new Rectangle(0, 0, targetSize.Width, targetSize.Height));
+                }
+
+                var hIcon = highResBitmap.GetHicon();
+                _notifyIcon.Icon = Icon.FromHandle(hIcon);
+                AppLogger.LogSystem($"Идеальная иконка успешно сгенерирована из: {Path.GetFileName(actualIconPath)}");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.LogWarning($"Ошибка генерации иконки: {ex.Message}");
+                _notifyIcon.Icon = SystemIcons.Application;
+            }
         }
         else
         {
+            AppLogger.LogWarning($"Файл иконки не найден ни по PNG, ни по ICO: {actualIconPath}");
             _notifyIcon.Icon = SystemIcons.Application;
-            AppLogger.LogWarning($"Файл иконки не найден: {iconPath}. Применена системная иконка.");
         }
+
+
 
         _notifyIcon.MouseClick += (_, e) =>
         {

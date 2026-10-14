@@ -11,7 +11,6 @@ ApplicationConfiguration.Initialize();
 AppLogger.LogSystem("=== Инициализация DownloadsSorter-DoSo ===");
 
 const string watchDirectory = @"D:\_DOWNLOADS";
-var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "logo.ico");
 
 // 1. Проверяем и создаем рабочую папку, если ее нет
 var initializer = new DirectoryInitializationService();
@@ -28,7 +27,7 @@ var moverService = new FileMoverService(dateRoutingService);
 var statsService = new FileBatchStatisticsService();
 var phraseService = new PersonalityPhraseService();
 
-using var trayManager = new TrayIconManager(watchDirectory, iconPath);
+using var trayManager = new TrayIconManager(watchDirectory);
 
 // 3. Передаем лямбду с вызовом трея
 using var watcherService = new FileWatcherService(
